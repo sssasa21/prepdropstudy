@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LogOut, Trash2, Check, X, ExternalLink, Lock } from "lucide-react";
+import { LogOut, Trash2, Check, X, ExternalLink, Lock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import {
   reviewHeartbeat,
   updateResourceStatus,
   deleteResource,
+  isUrlUnverified,
   type Resource,
 } from "@/lib/prepdrop";
 
@@ -205,6 +206,12 @@ const ReviewItem = ({
           <Badge variant="outline" className="text-xs">
             {resource.subject}
           </Badge>
+          {isUrlUnverified(resource.url) && (
+            <Badge variant="destructive" className="text-xs gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              Unverified Link — Review Carefully
+            </Badge>
+          )}
         </div>
         <a
           href={resource.url}
