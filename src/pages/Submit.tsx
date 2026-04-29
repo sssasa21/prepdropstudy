@@ -171,12 +171,19 @@ const Submit = () => {
                 id="url"
                 type="url"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => handleUrlChange(e.target.value)}
+                onBlur={handleUrlBlur}
                 maxLength={500}
                 placeholder="https://..."
+                className={urlError ? "border-destructive" : ""}
                 required
               />
+              {urlError && <p className="text-xs text-destructive">{urlError}</p>}
+              {!urlError && urlWarning && (
+                <p className="text-xs text-primary-glow">⚠️ {urlWarning}</p>
+              )}
             </div>
+
 
             <div className="space-y-2">
               <Label>Subject</Label>
