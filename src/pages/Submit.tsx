@@ -22,6 +22,8 @@ import {
   type ResourceType,
   type Subject,
 } from "@/lib/prepdrop";
+import { runFullModeration } from "@/lib/moderation";
+import { toast } from "@/hooks/use-toast";
 
 const Submit = () => {
   const [name, setName] = useState("");
@@ -34,6 +36,7 @@ const Submit = () => {
   const [userIdError, setUserIdError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
 
   const handleUserIdChange = (v: string) => {
     setUserId(v);
@@ -67,7 +70,7 @@ const Submit = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     const idErr = checkUserId(userId);
@@ -84,8 +87,44 @@ const Submit = () => {
       setUrlError(urlResult.error || "Please enter a valid URL.");
       return;
     }
-    addResource({ name: name.trim(), type, url: url.trim(), subject, userId });
-    setSubmitted(true);
+
+    setChecking(true);
+    try {
+      const report = await runFullModeration(name.trim(), url.trim());
+
+      if (!report.name.clean) {
+        setFormError(`Resource name rejected: ${report.name.reason}`);
+        setChecking(false);
+        return;
+      }
+      if (!report.url.safe) {
+        setUrlError(`URL rejected: ${report.url.reason}`);
+        setChecking(false);
+        return;
+      }
+      if (report.spam.spam) {
+        setFormError(`Submission flagged as spam: ${report.spam.reason}`);
+        setChecking(false);
+        return;
+      }
+      if (report.duplicate.duplicate) {
+        setFormError(`Duplicate of an existing resource: ${report.duplicate.reason}`);
+        setChecking(false);
+        return;
+      }
+
+      addResource({ name: name.trim(), type, url: url.trim(), subject, userId });
+      setSubmitted(true);
+    } catch (err) {
+      console.error("AI moderation failed:", err);
+      toast({
+        title: "Moderation service unavailable",
+        description: "We couldn't verify your submission right now. Please try again in a moment.",
+        variant: "destructive",
+      });
+    } finally {
+      setChecking(false);
+    }
   };
 
 
@@ -227,9 +266,9 @@ const Submit = () => {
               type="submit"
               size="lg"
               className="w-full bg-gradient-primary border-0 shadow-glow"
-              disabled={!!userIdError || !!validateUserId(userId)}
+              disabled={checking || !!userIdError || !!validateUserId(userId)}
             >
-              Drop it 💧
+              {checking ? "Checking with AI..." : "Drop it 💧"}
             </Button>
           </form>
         </Card>
