@@ -1,0 +1,38 @@
+import { ExternalLink, Smartphone, Send } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import type { Resource } from "@/lib/prepdrop";
+
+export const ResourceCard = ({ resource }: { resource: Resource }) => {
+  const isApp = resource.type === "app";
+  return (
+    <Card className="group p-5 hover:border-primary/50 transition-all hover:shadow-glow">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-lg bg-gradient-primary text-primary-foreground">
+            {isApp ? <Smartphone className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+          </div>
+          <Badge variant="secondary" className="text-xs">
+            {isApp ? "App" : "Telegram"}
+          </Badge>
+        </div>
+        <Badge variant="outline" className="text-xs border-primary/40 text-primary-glow">
+          {resource.subject}
+        </Badge>
+      </div>
+      <h3 className="font-semibold text-lg mb-2 break-words">{resource.name}</h3>
+      <a
+        href={resource.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 text-sm text-primary-glow hover:text-primary transition-colors break-all mb-3"
+      >
+        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">{resource.url}</span>
+      </a>
+      <div className="text-xs text-muted-foreground pt-3 border-t border-border">
+        Dropped by: <span className="text-foreground font-mono">{resource.userId}</span>
+      </div>
+    </Card>
+  );
+};

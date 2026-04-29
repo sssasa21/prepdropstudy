@@ -1,0 +1,212 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { PrepDropHeader } from "@/components/PrepDropHeader";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  addResource,
+  checkUserId,
+  validateUserId,
+  SUBJECTS,
+  type ResourceType,
+  type Subject,
+} from "@/lib/prepdrop";
+
+const Submit = () => {
+  const [name, setName] = useState("");
+  const [type, setType] = useState<ResourceType>("app");
+  const [url, setUrl] = useState("");
+  const [subject, setSubject] = useState<Subject>("General");
+  const [userId, setUserId] = useState("");
+  const [userIdError, setUserIdError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const handleUserIdChange = (v: string) => {
+    setUserId(v);
+    if (v.length > 7) setUserIdError("User ID must be 7 characters or less.");
+    else if (v && !/^[A-Za-z0-9_]*$/.test(v))
+      setUserIdError("Only letters, numbers, and underscores allowed.");
+    else setUserIdError(null);
+  };
+
+  const handleUserIdBlur = () => {
+    if (!userId) return;
+    setUserIdError(checkUserId(userId));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+    const idErr = checkUserId(userId);
+    if (idErr) {
+      setUserIdError(idErr);
+      return;
+    }
+    if (!name.trim() || !url.trim()) {
+      setFormError("Please fill out all fields.");
+      return;
+    }
+    try {
+      new URL(url);
+    } catch {
+      setFormError("Please enter a valid URL (including https://).");
+      return;
+    }
+    addResource({ name: name.trim(), type, url: url.trim(), subject, userId });
+    setSubmitted(true);
+  };
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gradient-bg">
+        <PrepDropHeader />
+        <div className="container mx-auto px-4 py-20 max-w-md text-center">
+          <div className="inline-flex p-4 rounded-full bg-success/20 mb-6">
+            <CheckCircle2 className="h-10 w-10 text-success" />
+          </div>
+          <h1 className="text-2xl font-bold mb-3">Dropped!</h1>
+          <p className="text-muted-foreground mb-8">
+            Your resource is under review. It will be published once approved.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button asChild variant="outline">
+              <Link to="/">Back to Home</Link>
+            </Button>
+            <Button
+              className="bg-gradient-primary border-0"
+              onClick={() => {
+                setSubmitted(false);
+                setName("");
+                setUrl("");
+                setSubject("General");
+              }}
+            >
+              Drop another
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-bg">
+      <PrepDropHeader />
+      <div className="container mx-auto px-4 py-10 max-w-xl">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </Link>
+
+        <h1 className="text-3xl font-bold mb-2">Drop a Resource</h1>
+        <p className="text-muted-foreground mb-8">
+          Share a free app or Telegram channel with fellow learners.
+        </p>
+
+        <Card className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="name">Resource Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={100}
+                placeholder="e.g. Physics Wallah"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Resource Type</Label>
+              <Select value={type} onValueChange={(v) => setType(v as ResourceType)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="app">📱 App Link</SelectItem>
+                  <SelectItem value="telegram">✈️ Telegram Link</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="url">URL / Link</Label>
+              <Input
+                id="url"
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                maxLength={500}
+                placeholder="https://..."
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Subject</Label>
+              <Select value={subject} onValueChange={(v) => setSubject(v as Subject)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUBJECTS.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="userId">Your User ID</Label>
+              <Input
+                id="userId"
+                value={userId}
+                onChange={(e) => handleUserIdChange(e.target.value)}
+                onBlur={handleUserIdBlur}
+                maxLength={20}
+                placeholder="max 7 chars"
+                className={userIdError ? "border-destructive" : ""}
+                required
+              />
+              {userIdError && <p className="text-xs text-destructive">{userIdError}</p>}
+              <p className="text-xs text-muted-foreground">
+                Max 7 characters. Letters, numbers and _ only. No login needed — this is your public identity.
+              </p>
+            </div>
+
+            {formError && (
+              <p className="text-sm text-destructive text-center">{formError}</p>
+            )}
+
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full bg-gradient-primary border-0 shadow-glow"
+              disabled={!!userIdError || !!validateUserId(userId)}
+            >
+              Drop it 💧
+            </Button>
+          </form>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default Submit;
