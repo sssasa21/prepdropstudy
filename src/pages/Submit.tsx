@@ -17,6 +17,7 @@ import {
   addResource,
   checkUserId,
   validateUserId,
+  validateUrl,
   SUBJECTS,
   type ResourceType,
   type Subject,
@@ -26,6 +27,8 @@ const Submit = () => {
   const [name, setName] = useState("");
   const [type, setType] = useState<ResourceType>("app");
   const [url, setUrl] = useState("");
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const [urlWarning, setUrlWarning] = useState<string | null>(null);
   const [subject, setSubject] = useState<Subject>("General");
   const [userId, setUserId] = useState("");
   const [userIdError, setUserIdError] = useState<string | null>(null);
@@ -37,12 +40,31 @@ const Submit = () => {
     if (v.length > 7) setUserIdError("User ID must be 7 characters or less.");
     else if (v && !/^[A-Za-z0-9_]*$/.test(v))
       setUserIdError("Only letters, numbers, and underscores allowed.");
+    else if (v) setUserIdError(validateUserId(v, true));
     else setUserIdError(null);
   };
 
   const handleUserIdBlur = () => {
     if (!userId) return;
     setUserIdError(checkUserId(userId));
+  };
+
+  const handleUrlChange = (v: string) => {
+    setUrl(v);
+    setUrlError(null);
+    setUrlWarning(null);
+  };
+
+  const handleUrlBlur = () => {
+    if (!url) return;
+    const result = validateUrl(url.trim());
+    if (!result.ok) {
+      setUrlError(result.error || "Please enter a valid URL.");
+      setUrlWarning(null);
+    } else {
+      setUrlError(null);
+      setUrlWarning(result.warning || null);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -57,15 +79,15 @@ const Submit = () => {
       setFormError("Please fill out all fields.");
       return;
     }
-    try {
-      new URL(url);
-    } catch {
-      setFormError("Please enter a valid URL (including https://).");
+    const urlResult = validateUrl(url.trim());
+    if (!urlResult.ok) {
+      setUrlError(urlResult.error || "Please enter a valid URL.");
       return;
     }
     addResource({ name: name.trim(), type, url: url.trim(), subject, userId });
     setSubmitted(true);
   };
+
 
   if (submitted) {
     return (
@@ -149,12 +171,19 @@ const Submit = () => {
                 id="url"
                 type="url"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => handleUrlChange(e.target.value)}
+                onBlur={handleUrlBlur}
                 maxLength={500}
                 placeholder="https://..."
+                className={urlError ? "border-destructive" : ""}
                 required
               />
+              {urlError && <p className="text-xs text-destructive">{urlError}</p>}
+              {!urlError && urlWarning && (
+                <p className="text-xs text-primary-glow">⚠️ {urlWarning}</p>
+              )}
             </div>
+
 
             <div className="space-y-2">
               <Label>Subject</Label>
