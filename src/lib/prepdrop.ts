@@ -80,28 +80,77 @@ export function getMyId(): string | null {
   return localStorage.getItem(MY_ID_KEY);
 }
 
-// Blocked words list — common offensive/explicit terms
+// Blocked words — English + Hindi slang/abusive words
+// Matched after leetspeak normalization (0→o, 1→i, 3→e, 4→a, 5→s, 7→t, @→a, $→s)
 const BLOCKED_WORDS = [
-  "fuck", "fck", "shit", "bitch", "btch", "cunt", "dick", "cock", "pussy",
-  "ass", "asshole", "bastard", "damn", "slut", "whore", "rape", "rapist",
-  "nigger", "nigga", "n1gger", "faggot", "fag", "retard", "tard",
-  "kike", "spic", "chink", "gook", "tranny", "homo", "dyke",
-  "sex", "porn", "nude", "nudes", "xxx", "fuk", "fuq",
-  "kill", "murder", "die", "suicide", "nazi", "hitler", "isis",
-  "cocaine", "heroin", "meth", "weed", "drug",
-  "anal", "boob", "tit", "tits", "vagina", "penis", "horny",
-  "cum", "jizz", "milf", "bdsm", "fetish",
+  // English — sexual / explicit
+  "fuck", "fuk", "fuq", "fck", "fcuk", "phuck", "mofo", "motherfucker",
+  "shit", "shyt", "bullshit",
+  "bitch", "btch", "biatch", "biotch",
+  "cunt", "kunt", "twat",
+  "dick", "dik", "cock", "kock", "knob", "prick", "schlong",
+  "pussy", "pusy", "pussi",
+  "ass", "asshole", "arse", "arsehole", "bastard", "basterd",
+  "slut", "slutty", "whore", "thot", "skank",
+  "sex", "sexy", "porn", "porno", "pron", "nude", "nudes", "naked", "xxx", "nsfw",
+  "anal", "boob", "boobs", "tit", "tits", "titty", "boobies",
+  "vagina", "penis", "horny", "kinky",
+  "cum", "jizz", "spunk", "milf", "dilf", "bdsm", "fetish",
+  "blowjob", "handjob", "rimjob", "creampie", "gangbang",
+  "rape", "rapist", "molest", "pedo", "pedophile",
+  // Slurs / hate
+  "nigger", "nigga", "niglet", "negro", "coon",
+  "faggot", "fag", "fggt", "queer", "tranny", "homo", "dyke",
+  "retard", "tard", "spaz", "mongoloid",
+  "kike", "spic", "wetback", "chink", "gook", "raghead",
+  "nazi", "hitler", "kkk", "isis",
+  // Violence / drugs
+  "kill", "murder", "suicide", "kys", "shoot", "stab", "bomb", "terrorist",
+  "cocaine", "coke", "heroin", "meth", "crack", "weed", "ganja", "drug", "drugs",
+  "lsd", "mdma", "ecstasy",
+  // Hindi / Hinglish slang & abuses
+  "chutiya", "chutia", "chutya", "chut", "lund", "lavda", "lawda", "laund",
+  "bhosdi", "bhosda", "bhosdike", "bsdk", "bhsdk",
+  "madarchod", "mdrchd", "behenchod", "bhenchod", "bhanchod",
+  "gandu", "gaandu", "gand", "gaand",
+  "randi", "rndi", "raand", "saala", "kutiya", "kamina",
+  "harami", "haraami", "haramzada", "haramkhor",
+  "chinaal", "chinal", "tatti", "jhaant", "jhantu",
+  "loda", "lodu", "lawde", "launda", "laundi",
+  "kameena", "fattu", "phattu", "chakka",
 ];
+
+function normalizeLeet(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/0/g, "o")
+    .replace(/1/g, "i")
+    .replace(/3/g, "e")
+    .replace(/4/g, "a")
+    .replace(/5/g, "s")
+    .replace(/7/g, "t")
+    .replace(/8/g, "b")
+    .replace(/@/g, "a")
+    .replace(/\$/g, "s")
+    .replace(/[^a-z]/g, "");
+}
+
+function containsBlockedWord(id: string): boolean {
+  const variants = [id.toLowerCase(), normalizeLeet(id)];
+  for (const v of variants) {
+    for (const word of BLOCKED_WORDS) {
+      if (v.includes(word)) return true;
+    }
+  }
+  return false;
+}
 
 export function validateUserId(id: string, isOwner: boolean = false): string | null {
   if (!id) return "User ID is required.";
   if (id.length > 7) return "User ID must be 7 characters or less.";
   if (!/^[A-Za-z0-9_]+$/.test(id)) return "Only letters, numbers, and underscores allowed.";
-  const lower = id.toLowerCase();
-  for (const word of BLOCKED_WORDS) {
-    if (lower.includes(word)) {
-      return "This User ID is not allowed. Please choose a different one.";
-    }
+  if (containsBlockedWord(id)) {
+    return "This User ID is not allowed. Please choose a clean, appropriate name.";
   }
   if (!isOwner) {
     const myId = getMyId();
@@ -111,6 +160,7 @@ export function validateUserId(id: string, isOwner: boolean = false): string | n
   }
   return null;
 }
+
 
 export function checkUserId(id: string): string | null {
   const myId = getMyId();
