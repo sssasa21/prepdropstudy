@@ -215,3 +215,79 @@ export function reviewLogout() {
   sessionStorage.removeItem(REVIEW_SESSION_KEY);
   localStorage.removeItem(REVIEW_LOCK_KEY);
 }
+
+// --- URL validation ---
+const ALLOWED_DOMAINS = [
+  "play.google.com", "apps.apple.com", "t.me", "telegram.me", "telegram.org",
+  "youtube.com", "youtu.be", "m.youtube.com",
+  "unacademy.com", "physicswallah.live", "pw.live", "vedantu.com",
+  "byjus.com", "khanacademy.org", "coursera.org", "edx.org", "udemy.com",
+  "github.com", "gitlab.com",
+  "drive.google.com", "docs.google.com",
+  "notion.so", "notion.site",
+  "nptel.ac.in", "swayam.gov.in", "nta.ac.in",
+];
+
+const BLOCKED_DOMAINS = [
+  // URL shorteners (hide real destination)
+  "bit.ly", "tinyurl.com", "goo.gl", "t.co", "ow.ly", "is.gd", "buff.ly",
+  "cutt.ly", "shorte.st", "rebrand.ly", "rb.gy", "tiny.cc", "shorturl.at",
+  "lnkd.in", "shrt.li", "adf.ly", "linktr.ee",
+  // Adult / porn
+  "pornhub.com", "xvideos.com", "xnxx.com", "redtube.com", "youporn.com",
+  "xhamster.com", "brazzers.com", "onlyfans.com", "stripchat.com",
+  "chaturbate.com", "spankbang.com", "porn.com", "sex.com", "tube8.com",
+  // Known malware / piracy
+  "thepiratebay.org", "1337x.to", "kickass.to",
+];
+
+export interface UrlValidation {
+  ok: boolean;
+  error?: string;
+  warning?: string;
+  unverified?: boolean;
+}
+
+function getHostname(url: string): string | null {
+  try {
+    const u = new URL(url);
+    return u.hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
+
+function domainMatches(host: string, domain: string): boolean {
+  return host === domain || host.endsWith("." + domain);
+}
+
+export function validateUrl(url: string): UrlValidation {
+  if (!url) return { ok: false, error: "Please enter a valid URL." };
+  if (!/^https?:\/\//i.test(url)) {
+    return { ok: false, error: "Please enter a valid URL." };
+  }
+  const host = getHostname(url);
+  if (!host || !/\.[a-z]{2,}$/i.test(host)) {
+    return { ok: false, error: "Please enter a valid URL." };
+  }
+  for (const bad of BLOCKED_DOMAINS) {
+    if (domainMatches(host, bad)) {
+      return { ok: false, error: "This URL is not allowed on PrepDrop." };
+    }
+  }
+  for (const good of ALLOWED_DOMAINS) {
+    if (domainMatches(host, good)) {
+      return { ok: true };
+    }
+  }
+  return {
+    ok: true,
+    unverified: true,
+    warning: "This link will go through extra review before publishing.",
+  };
+}
+
+export function isUrlUnverified(url: string): boolean {
+  const v = validateUrl(url);
+  return v.ok === true && v.unverified === true;
+}
