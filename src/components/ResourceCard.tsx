@@ -1,4 +1,4 @@
-import { ExternalLink, Smartphone, Send } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { Resource } from "@/lib/prepdrop";
@@ -7,15 +7,10 @@ export const ResourceCard = ({ resource }: { resource: Resource }) => {
   const isApp = resource.type === "app";
   return (
     <Card className="group p-5 hover:border-primary/50 transition-all hover:shadow-glow">
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-gradient-primary text-primary-foreground">
-            {isApp ? <Smartphone className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-          </div>
-          <Badge variant="secondary" className="text-xs">
-            {isApp ? "App" : "Telegram"}
-          </Badge>
-        </div>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <Badge variant="secondary" className="text-xs">
+          {isApp ? "App" : "Telegram"}
+        </Badge>
         <Badge variant="outline" className="text-xs border-primary/40 text-primary-glow">
           {resource.subject}
         </Badge>
