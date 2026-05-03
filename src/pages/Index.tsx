@@ -30,7 +30,7 @@ const Index = () => {
       <PrepDropHeader />
 
       {/* HERO */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden pb-10">
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-[900px] rounded-full bg-primary/20 blur-[120px]" />
           <div className="absolute top-40 right-0 h-[300px] w-[400px] rounded-full bg-accent/20 blur-[100px]" />
@@ -60,10 +60,8 @@ const Index = () => {
             </Button>
           </div>
         </div>
-        <div className="container mx-auto px-4 pb-4 flex justify-between text-xs text-muted-foreground">
-          <span>PrepDrop · v0.1</span>
-          <span>Free. Forever. No login.</span>
-        </div>
+        <span className="absolute bottom-4 left-4 text-xs text-muted-foreground">PrepDrop · v0.1</span>
+        <span className="absolute bottom-4 right-4 text-xs text-muted-foreground">Free. Forever. No login.</span>
       </section>
 
       {/* FEATURE STRIP */}
