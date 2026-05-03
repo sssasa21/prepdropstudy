@@ -60,6 +60,10 @@ const Index = () => {
             </Button>
           </div>
         </div>
+        <div className="container mx-auto px-4 pb-4 flex justify-between text-xs text-muted-foreground">
+          <span>PrepDrop · v0.1</span>
+          <span>Free. Forever. No login.</span>
+        </div>
       </section>
 
       {/* FEATURE STRIP */}
