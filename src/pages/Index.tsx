@@ -30,7 +30,7 @@ const Index = () => {
       <PrepDropHeader />
 
       {/* HERO */}
-      <section className="relative overflow-hidden pb-10">
+      <section className="relative overflow-hidden">
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-[900px] rounded-full bg-primary/20 blur-[120px]" />
           <div className="absolute top-40 right-0 h-[300px] w-[400px] rounded-full bg-accent/20 blur-[100px]" />
@@ -55,13 +55,8 @@ const Index = () => {
                 Drop a Resource <ArrowRight className="h-4 w-4 ml-1" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-primary/40">
-              <a href="#resources">Browse drops</a>
-            </Button>
           </div>
         </div>
-        <span className="absolute bottom-4 left-4 text-xs text-muted-foreground">PrepDrop · v0.1</span>
-        <span className="absolute bottom-4 right-4 text-xs text-muted-foreground">Free. Forever. No login.</span>
       </section>
 
       {/* FEATURE STRIP */}
