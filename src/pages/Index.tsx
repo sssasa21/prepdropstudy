@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Smartphone, Send, Sparkles, ArrowRight, Shield, Users, Zap } from "lucide-react";
+import { Sparkles, ArrowRight, Shield, Users, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PrepDropHeader } from "@/components/PrepDropHeader";
 import { ResourceCard } from "@/components/ResourceCard";
