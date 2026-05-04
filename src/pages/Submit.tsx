@@ -54,8 +54,19 @@ const Submit = () => {
 
   const handleUrlChange = (v: string) => {
     setUrl(v);
-    setUrlError(null);
-    setUrlWarning(null);
+    if (!v) {
+      setUrlError(null);
+      setUrlWarning(null);
+      return;
+    }
+    const result = validateUrl(v.trim());
+    if (!result.ok) {
+      setUrlError(result.error || "Please enter a valid URL.");
+      setUrlWarning(null);
+    } else {
+      setUrlError(null);
+      setUrlWarning(result.warning || null);
+    }
   };
 
   const handleUrlBlur = () => {
@@ -266,7 +277,13 @@ const Submit = () => {
               type="submit"
               size="lg"
               className="w-full bg-gradient-primary border-0 shadow-glow"
-              disabled={checking || !!userIdError || !!validateUserId(userId)}
+              disabled={
+                checking ||
+                !!userIdError ||
+                !!validateUserId(userId) ||
+                !url.trim() ||
+                !validateUrl(url.trim()).ok
+              }
             >
               {checking ? "Checking with AI..." : "Drop it"}
             </Button>

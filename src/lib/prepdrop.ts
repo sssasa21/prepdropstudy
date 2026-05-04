@@ -239,6 +239,14 @@ const BLOCKED_DOMAINS = [
   "chaturbate.com", "spankbang.com", "porn.com", "sex.com", "tube8.com",
   // Known malware / piracy
   "thepiratebay.org", "1337x.to", "kickass.to",
+  // Non-study / social / streaming / shopping / AI chat
+  "youtube.com", "youtu.be", "m.youtube.com",
+  "reddit.com",
+  "claude.ai", "openai.com", "chatgpt.com",
+  "twitter.com", "x.com",
+  "instagram.com", "facebook.com", "tiktok.com", "snapchat.com",
+  "netflix.com",
+  "amazon.com", "flipkart.com",
 ];
 
 export interface UrlValidation {
@@ -272,7 +280,7 @@ export function validateUrl(url: string): UrlValidation {
   }
   for (const bad of BLOCKED_DOMAINS) {
     if (domainMatches(host, bad)) {
-      return { ok: false, error: "This URL is not allowed on PrepDrop." };
+      return { ok: false, error: "Only study apps and Telegram channel links are allowed." };
     }
   }
   for (const good of ALLOWED_DOMAINS) {
