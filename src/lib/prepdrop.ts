@@ -280,7 +280,7 @@ export function validateUrl(url: string): UrlValidation {
   }
   for (const bad of BLOCKED_DOMAINS) {
     if (domainMatches(host, bad)) {
-      return { ok: false, error: "This URL is not allowed on PrepDrop." };
+      return { ok: false, error: "Only study apps and Telegram channel links are allowed." };
     }
   }
   for (const good of ALLOWED_DOMAINS) {
