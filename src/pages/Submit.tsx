@@ -198,8 +198,8 @@ const Submit = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="app">📱 App Link</SelectItem>
-                  <SelectItem value="telegram">✈️ Telegram Link</SelectItem>
+                  <SelectItem value="app">App Link</SelectItem>
+                  <SelectItem value="telegram">Telegram Link</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -268,7 +268,7 @@ const Submit = () => {
               className="w-full bg-gradient-primary border-0 shadow-glow"
               disabled={checking || !!userIdError || !!validateUserId(userId)}
             >
-              {checking ? "Checking with AI..." : "Drop it 💧"}
+              {checking ? "Checking with AI..." : "Drop it"}
             </Button>
           </form>
         </Card>
