@@ -103,7 +103,8 @@ const Submit = () => {
       setUserIdError(idErr);
       return;
     }
-    if (!name.trim() || !url.trim()) {
+    const derivedName = extractNameFromUrl(url.trim());
+    if (!derivedName || !url.trim()) {
       setFormError("Please fill out all fields.");
       return;
     }
@@ -115,7 +116,7 @@ const Submit = () => {
 
     setChecking(true);
     try {
-      const report = await runFullModeration(name.trim(), url.trim());
+      const report = await runFullModeration(derivedName, url.trim());
 
       if (!report.name.clean) {
         setFormError(`Resource name rejected: ${report.name.reason}`);
@@ -138,7 +139,7 @@ const Submit = () => {
         return;
       }
 
-      addResource({ name: name.trim(), type, url: url.trim(), subject, userId });
+      addResource({ name: derivedName, type, url: url.trim(), subject, userId });
       setSubmitted(true);
     } catch (err) {
       console.error("AI moderation failed:", err);
