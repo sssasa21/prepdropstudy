@@ -174,7 +174,7 @@ const Submit = () => {
               className="bg-gradient-primary border-0"
               onClick={() => {
                 setSubmitted(false);
-                setName("");
+                
                 setUrl("");
                 setSubject("General");
               }}
