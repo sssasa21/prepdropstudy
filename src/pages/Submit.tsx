@@ -205,17 +205,6 @@ const Submit = () => {
 
         <Card className="p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="name">Resource Name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={100}
-                placeholder="e.g. Physics Wallah"
-                required
-              />
-            </div>
 
             <div className="space-y-2">
               <Label>Resource Type</Label>
