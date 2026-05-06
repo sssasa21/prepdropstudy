@@ -65,7 +65,7 @@ const Index = () => {
           <FeatureCard
             icon={<Shield className="h-5 w-5" />}
             title="AI-moderated"
-            desc="Every drop is auto-screened for safety, spam and duplicates."
+            desc="Every drop is auto-screened for harmful links like malware or phishing."
           />
           <FeatureCard
             icon={<Users className="h-5 w-5" />}
