@@ -25,8 +25,22 @@ import {
 import { runFullModeration } from "@/lib/moderation";
 import { toast } from "@/hooks/use-toast";
 
+function extractNameFromUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    let host = u.hostname.toLowerCase().replace(/^www\./, "");
+    const parts = host.split(".");
+    if (parts.length > 1) parts.pop(); // remove TLD
+    if (parts.length > 1 && ["co", "com", "ac", "gov", "org"].includes(parts[parts.length - 1])) {
+      parts.pop(); // remove second-level TLD like .co.uk
+    }
+    return parts.join(" ").replace(/[-.]/g, " ").trim();
+  } catch {
+    return "";
+  }
+}
+
 const Submit = () => {
-  const [name, setName] = useState("");
   const [type, setType] = useState<ResourceType>("app");
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState<string | null>(null);
