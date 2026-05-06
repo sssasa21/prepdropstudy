@@ -118,23 +118,8 @@ const Submit = () => {
     try {
       const report = await runFullModeration(derivedName, url.trim());
 
-      if (!report.name.clean) {
-        setFormError(`Resource name rejected: ${report.name.reason}`);
-        setChecking(false);
-        return;
-      }
       if (!report.url.safe) {
         setUrlError(`URL rejected: ${report.url.reason}`);
-        setChecking(false);
-        return;
-      }
-      if (report.spam.spam) {
-        setFormError(`Submission flagged as spam: ${report.spam.reason}`);
-        setChecking(false);
-        return;
-      }
-      if (report.duplicate.duplicate) {
-        setFormError(`Duplicate of an existing resource: ${report.duplicate.reason}`);
         setChecking(false);
         return;
       }
