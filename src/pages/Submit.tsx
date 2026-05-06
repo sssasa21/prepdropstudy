@@ -25,8 +25,22 @@ import {
 import { runFullModeration } from "@/lib/moderation";
 import { toast } from "@/hooks/use-toast";
 
+function extractNameFromUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    let host = u.hostname.toLowerCase().replace(/^www\./, "");
+    const parts = host.split(".");
+    if (parts.length > 1) parts.pop(); // remove TLD
+    if (parts.length > 1 && ["co", "com", "ac", "gov", "org"].includes(parts[parts.length - 1])) {
+      parts.pop(); // remove second-level TLD like .co.uk
+    }
+    return parts.join(" ").replace(/[-.]/g, " ").trim();
+  } catch {
+    return "";
+  }
+}
+
 const Submit = () => {
-  const [name, setName] = useState("");
   const [type, setType] = useState<ResourceType>("app");
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState<string | null>(null);
@@ -89,7 +103,8 @@ const Submit = () => {
       setUserIdError(idErr);
       return;
     }
-    if (!name.trim() || !url.trim()) {
+    const derivedName = extractNameFromUrl(url.trim());
+    if (!derivedName || !url.trim()) {
       setFormError("Please fill out all fields.");
       return;
     }
@@ -101,7 +116,7 @@ const Submit = () => {
 
     setChecking(true);
     try {
-      const report = await runFullModeration(name.trim(), url.trim());
+      const report = await runFullModeration(derivedName, url.trim());
 
       if (!report.name.clean) {
         setFormError(`Resource name rejected: ${report.name.reason}`);
@@ -124,7 +139,7 @@ const Submit = () => {
         return;
       }
 
-      addResource({ name: name.trim(), type, url: url.trim(), subject, userId });
+      addResource({ name: derivedName, type, url: url.trim(), subject, userId });
       setSubmitted(true);
     } catch (err) {
       console.error("AI moderation failed:", err);
@@ -159,7 +174,7 @@ const Submit = () => {
               className="bg-gradient-primary border-0"
               onClick={() => {
                 setSubmitted(false);
-                setName("");
+                
                 setUrl("");
                 setSubject("General");
               }}
@@ -190,17 +205,6 @@ const Submit = () => {
 
         <Card className="p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="name">Resource Name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={100}
-                placeholder="e.g. Physics Wallah"
-                required
-              />
-            </div>
 
             <div className="space-y-2">
               <Label>Resource Type</Label>
