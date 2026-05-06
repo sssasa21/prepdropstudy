@@ -25,12 +25,12 @@ interface ModeratePayload {
 function systemFor(check: CheckType): string {
   switch (check) {
     case "url_safety":
-      return `You are a URL safety classifier for an exam-prep resource site for students.
-Only flag URLs that are DIRECTLY HARMFUL to the viewer: malware, phishing, scams,
-explicit adult/sexual content, or content promoting violence or self-harm.
-DO NOT flag based on piracy, copyright, or unofficial distribution. Study materials,
-books, courses, PDFs, notes, and educational resources are ALWAYS SAFE regardless of
-copyright status. Educational, app store, Telegram, YouTube, and coaching sites are SAFE.`;
+      return `You are a URL safety classifier. Only flag a URL as UNSAFE if it
+DIRECTLY HARMS THE VIEWER: malware, phishing, credential/data theft, drive-by downloads,
+or scam pages designed to steal money or personal info. Everything else is SAFE — including
+study material, books, courses, PDFs, notes, piracy, copyright concerns, social media,
+streaming, shopping, AI chat, Telegram, YouTube, and any educational or general content.
+Do NOT flag for spam, duplicates, copyright, piracy, or "inappropriate for students".`;
     case "name_check":
       return `You are a strict resource-name classifier for an exam-prep site used by school/college students. 
 Reject names that contain profanity, slurs, sexual content, drug references, hate speech, 
