@@ -129,6 +129,7 @@ const Dashboard = ({ onLogout }: { onLogout: () => void }) => {
 
     return () => {
       supabase.removeChannel(channel);
+      unsubRatings();
     };
   }, []);
 
