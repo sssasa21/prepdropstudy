@@ -116,6 +116,29 @@ const Index = () => {
             count={tgCount}
           />
         </div>
+        <div className="flex items-center justify-end gap-2 max-w-2xl mx-auto mt-4 text-sm">
+          <span className="text-muted-foreground">Sort by:</span>
+          <button
+            onClick={() => setSort("top")}
+            className={`px-3 py-1 rounded-full border transition-colors ${
+              sort === "top"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border hover:border-primary/50"
+            }`}
+          >
+            Top Rated
+          </button>
+          <button
+            onClick={() => setSort("newest")}
+            className={`px-3 py-1 rounded-full border transition-colors ${
+              sort === "newest"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border hover:border-primary/50"
+            }`}
+          >
+            Newest
+          </button>
+        </div>
       </section>
 
       {/* RESOURCES */}
