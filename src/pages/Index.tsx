@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { PrepDropHeader } from "@/components/PrepDropHeader";
 import { ResourceCard } from "@/components/ResourceCard";
 import { getResources, type ResourceType } from "@/lib/prepdrop";
+import { getRatingSummary, subscribeRatings } from "@/lib/ratings";
+
+type SortMode = "top" | "newest";
 
 const Index = () => {
   const [resources, setResources] = useState(() => getResources());
