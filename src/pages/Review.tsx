@@ -87,9 +87,7 @@ const Dashboard = ({ onLogout }: { onLogout: () => void }) => {
 
   useEffect(() => {
     initRatings();
-    const unsub = subscribeRatings(() => setRatingTick((t) => t + 1));
-    return () => { unsub(); };
-  }, []);
+    const unsubRatings = subscribeRatings(() => setRatingTick((t) => t + 1));
 
     const fetchAll = async () => {
       const { data, error } = await supabase
