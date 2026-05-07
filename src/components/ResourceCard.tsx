@@ -1,6 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { StarRating } from "@/components/StarRating";
 import type { Resource } from "@/lib/prepdrop";
 
 export const ResourceCard = ({ resource }: { resource: Resource }) => {
@@ -28,6 +29,7 @@ export const ResourceCard = ({ resource }: { resource: Resource }) => {
       <div className="text-xs text-muted-foreground pt-3 border-t border-border">
         Dropped by: <span className="text-foreground font-mono">{resource.userId}</span>
       </div>
+      <StarRating resourceId={resource.id} />
     </Card>
   );
 };

@@ -8,8 +8,10 @@ import Submit from "./pages/Submit.tsx";
 import Review from "./pages/Review.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { initPrepDrop } from "@/lib/prepdrop";
+import { initRatings } from "@/lib/ratings";
 
 initPrepDrop();
+initRatings();
 
 const queryClient = new QueryClient();
 

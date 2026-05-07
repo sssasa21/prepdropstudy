@@ -19,7 +19,8 @@ export const StarRating = ({ resourceId }: Props) => {
 
   useEffect(() => {
     setSummary(getRatingSummary(resourceId));
-    return subscribeRatings(() => setSummary(getRatingSummary(resourceId)));
+    const unsub = subscribeRatings(() => setSummary(getRatingSummary(resourceId)));
+    return () => { unsub(); };
   }, [resourceId]);
 
   const locked = summary.myRating !== null;
