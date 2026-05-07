@@ -18,6 +18,8 @@ import {
   type ResourceStatus,
 } from "@/lib/prepdrop";
 import { supabase } from "@/integrations/supabase/client";
+import { getRatingSummary, subscribeRatings, initRatings } from "@/lib/ratings";
+import { Star } from "lucide-react";
 
 const Review = () => {
   const [loggedIn, setLoggedIn] = useState(() => reviewIsLoggedIn());
@@ -81,8 +83,14 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
 
 const Dashboard = ({ onLogout }: { onLogout: () => void }) => {
   const [resources, setResources] = useState<Resource[]>([]);
+  const [, setRatingTick] = useState(0);
 
   useEffect(() => {
+    initRatings();
+    const unsub = subscribeRatings(() => setRatingTick((t) => t + 1));
+    return () => { unsub(); };
+  }, []);
+
     const fetchAll = async () => {
       const { data, error } = await supabase
         .from("resources" as any)
