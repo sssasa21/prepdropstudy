@@ -5,25 +5,41 @@ import { Button } from "@/components/ui/button";
 import { PrepDropHeader } from "@/components/PrepDropHeader";
 import { ResourceCard } from "@/components/ResourceCard";
 import { getResources, type ResourceType } from "@/lib/prepdrop";
+import { getRatingSummary, subscribeRatings } from "@/lib/ratings";
+
+type SortMode = "top" | "newest";
 
 const Index = () => {
   const [resources, setResources] = useState(() => getResources());
   const [filter, setFilter] = useState<ResourceType | "all">("all");
+  const [sort, setSort] = useState<SortMode>("top");
+  const [, setRatingTick] = useState(0);
 
   useEffect(() => {
     const handler = () => setResources(getResources());
     window.addEventListener("prepdrop:update", handler);
     window.addEventListener("storage", handler);
+    const unsub = subscribeRatings(() => setRatingTick((t) => t + 1));
     return () => {
       window.removeEventListener("prepdrop:update", handler);
       window.removeEventListener("storage", handler);
+      unsub();
     };
   }, []);
 
   const published = resources.filter((r) => r.status === "published");
   const appsCount = published.filter((r) => r.type === "app").length;
   const tgCount = published.filter((r) => r.type === "telegram").length;
-  const visible = filter === "all" ? published : published.filter((r) => r.type === filter);
+  const filtered = filter === "all" ? published : published.filter((r) => r.type === filter);
+  const visible = [...filtered].sort((a, b) => {
+    if (sort === "newest") {
+      return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+    }
+    const sa = getRatingSummary(a.id);
+    const sb = getRatingSummary(b.id);
+    if (sb.average !== sa.average) return sb.average - sa.average;
+    return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+  });
 
   return (
     <div className="min-h-screen bg-gradient-bg">
@@ -99,6 +115,29 @@ const Index = () => {
             label="Telegram Channels"
             count={tgCount}
           />
+        </div>
+        <div className="flex items-center justify-end gap-2 max-w-2xl mx-auto mt-4 text-sm">
+          <span className="text-muted-foreground">Sort by:</span>
+          <button
+            onClick={() => setSort("top")}
+            className={`px-3 py-1 rounded-full border transition-colors ${
+              sort === "top"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border hover:border-primary/50"
+            }`}
+          >
+            Top Rated
+          </button>
+          <button
+            onClick={() => setSort("newest")}
+            className={`px-3 py-1 rounded-full border transition-colors ${
+              sort === "newest"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border hover:border-primary/50"
+            }`}
+          >
+            Newest
+          </button>
         </div>
       </section>
 
