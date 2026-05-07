@@ -12,21 +12,34 @@ type SortMode = "top" | "newest";
 const Index = () => {
   const [resources, setResources] = useState(() => getResources());
   const [filter, setFilter] = useState<ResourceType | "all">("all");
+  const [sort, setSort] = useState<SortMode>("top");
+  const [, setRatingTick] = useState(0);
 
   useEffect(() => {
     const handler = () => setResources(getResources());
     window.addEventListener("prepdrop:update", handler);
     window.addEventListener("storage", handler);
+    const unsub = subscribeRatings(() => setRatingTick((t) => t + 1));
     return () => {
       window.removeEventListener("prepdrop:update", handler);
       window.removeEventListener("storage", handler);
+      unsub();
     };
   }, []);
 
   const published = resources.filter((r) => r.status === "published");
   const appsCount = published.filter((r) => r.type === "app").length;
   const tgCount = published.filter((r) => r.type === "telegram").length;
-  const visible = filter === "all" ? published : published.filter((r) => r.type === filter);
+  const filtered = filter === "all" ? published : published.filter((r) => r.type === filter);
+  const visible = [...filtered].sort((a, b) => {
+    if (sort === "newest") {
+      return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+    }
+    const sa = getRatingSummary(a.id);
+    const sb = getRatingSummary(b.id);
+    if (sb.average !== sa.average) return sb.average - sa.average;
+    return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+  });
 
   return (
     <div className="min-h-screen bg-gradient-bg">
