@@ -14,7 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      claimed_ids: {
+        Row: {
+          claimed_at: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      resources: {
+        Row: {
+          id: string
+          name: string
+          status: string
+          subject: string
+          submitted_at: string
+          type: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          status?: string
+          subject: string
+          submitted_at?: string
+          type: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          status?: string
+          subject?: string
+          submitted_at?: string
+          type?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      submission_times: {
+        Row: {
+          id: string
+          submitted_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          submitted_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          submitted_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

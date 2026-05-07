@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export type Subject = "Physics" | "Chemistry" | "Maths" | "General";
 export type ResourceType = "app" | "telegram";
 export type ResourceStatus = "pending" | "published";
@@ -13,126 +15,154 @@ export interface Resource {
   submittedAt: string;
 }
 
-const RESOURCES_KEY = "prepdrop_resources";
-const CLAIMED_IDS_KEY = "prepdrop_claimed_ids";
-const MY_ID_KEY = "prepdrop_my_id";
 const REVIEW_SESSION_KEY = "prepdrop_review_session";
-const REVIEW_LOCK_KEY = "prepdrop_review_lock";
 
 export const SUBJECTS: Subject[] = ["Physics", "Chemistry", "Maths", "General"];
 
-// --- Resources ---
-export function getResources(): Resource[] {
-  try {
-    return JSON.parse(localStorage.getItem(RESOURCES_KEY) || "[]");
-  } catch {
-    return [];
-  }
+// In-memory cache hydrated from Supabase; sync subscribers via window event.
+let _resources: Resource[] = [];
+let _claimedIds: Set<string> = new Set();
+let _myId: string | null = null;
+let _initialized = false;
+
+function rowToResource(r: any): Resource {
+  return {
+    id: r.id,
+    name: r.name,
+    type: r.type as ResourceType,
+    url: r.url,
+    subject: r.subject as Subject,
+    userId: r.user_id,
+    status: r.status as ResourceStatus,
+    submittedAt: r.submitted_at,
+  };
 }
 
-export function saveResources(resources: Resource[]) {
-  localStorage.setItem(RESOURCES_KEY, JSON.stringify(resources));
+function emit() {
   window.dispatchEvent(new Event("prepdrop:update"));
 }
 
-export function addResource(r: Omit<Resource, "id" | "status" | "submittedAt">) {
-  const resources = getResources();
-  const newResource: Resource = {
-    ...r,
-    id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    status: "pending",
-    submittedAt: new Date().toISOString(),
-  };
-  resources.push(newResource);
-  saveResources(resources);
-  claimId(r.userId);
-  localStorage.setItem(MY_ID_KEY, r.userId);
-  return newResource;
+export async function initPrepDrop() {
+  if (_initialized) return;
+  _initialized = true;
+  await Promise.all([refreshResources(), refreshClaimedIds()]);
+
+  supabase
+    .channel("resources-realtime")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "resources" },
+      () => {
+        refreshResources();
+      }
+    )
+    .subscribe();
+
+  supabase
+    .channel("claimed-ids-realtime")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "claimed_ids" },
+      () => {
+        refreshClaimedIds();
+      }
+    )
+    .subscribe();
 }
 
-export function updateResourceStatus(id: string, status: ResourceStatus) {
-  const resources = getResources().map((r) => (r.id === id ? { ...r, status } : r));
-  saveResources(resources);
+async function refreshResources() {
+  const { data, error } = await supabase
+    .from("resources" as any)
+    .select("*")
+    .order("submitted_at", { ascending: false });
+  if (!error && data) {
+    _resources = (data as any[]).map(rowToResource);
+    emit();
+  }
 }
 
-export function deleteResource(id: string) {
-  saveResources(getResources().filter((r) => r.id !== id));
+async function refreshClaimedIds() {
+  const { data, error } = await supabase.from("claimed_ids" as any).select("user_id");
+  if (!error && data) {
+    _claimedIds = new Set((data as any[]).map((r) => r.user_id));
+    emit();
+  }
+}
+
+// --- Resources ---
+export function getResources(): Resource[] {
+  return _resources;
+}
+
+export async function addResource(r: Omit<Resource, "id" | "status" | "submittedAt">) {
+  const { data, error } = await supabase
+    .from("resources" as any)
+    .insert({
+      name: r.name,
+      type: r.type,
+      url: r.url,
+      subject: r.subject,
+      user_id: r.userId,
+      status: "pending",
+    })
+    .select()
+    .single();
+  if (error) throw error;
+
+  await supabase.from("claimed_ids" as any).upsert({ user_id: r.userId });
+  await supabase.from("submission_times" as any).insert({ user_id: r.userId });
+
+  _myId = r.userId;
+  await Promise.all([refreshResources(), refreshClaimedIds()]);
+  return rowToResource(data);
+}
+
+export async function updateResourceStatus(id: string, status: ResourceStatus) {
+  await supabase.from("resources" as any).update({ status }).eq("id", id);
+  await refreshResources();
+}
+
+export async function deleteResource(id: string) {
+  await supabase.from("resources" as any).delete().eq("id", id);
+  await refreshResources();
 }
 
 // --- User IDs ---
 export function getClaimedIds(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(CLAIMED_IDS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
-export function claimId(id: string) {
-  const ids = getClaimedIds();
-  if (!ids.includes(id)) {
-    ids.push(id);
-    localStorage.setItem(CLAIMED_IDS_KEY, JSON.stringify(ids));
-  }
+  return Array.from(_claimedIds);
 }
 
 export function getMyId(): string | null {
-  return localStorage.getItem(MY_ID_KEY);
+  return _myId;
 }
 
-// Blocked words — English + Hindi slang/abusive words
-// Matched after leetspeak normalization (0→o, 1→i, 3→e, 4→a, 5→s, 7→t, @→a, $→s)
+// Blocked words list (unchanged)
 const BLOCKED_WORDS = [
-  // English — sexual / explicit
-  "fuck", "fuk", "fuq", "fck", "fcuk", "phuck", "mofo", "motherfucker",
-  "shit", "shyt", "bullshit",
-  "bitch", "btch", "biatch", "biotch",
-  "cunt", "kunt", "twat",
-  "dick", "dik", "cock", "kock", "knob", "prick", "schlong",
-  "pussy", "pusy", "pussi",
-  "ass", "asshole", "arse", "arsehole", "bastard", "basterd",
-  "slut", "slutty", "whore", "thot", "skank",
-  "sex", "sexy", "porn", "porno", "pron", "nude", "nudes", "naked", "xxx", "nsfw",
-  "anal", "boob", "boobs", "tit", "tits", "titty", "boobies",
-  "vagina", "penis", "horny", "kinky",
-  "cum", "jizz", "spunk", "milf", "dilf", "bdsm", "fetish",
-  "blowjob", "handjob", "rimjob", "creampie", "gangbang",
-  "rape", "rapist", "molest", "pedo", "pedophile",
-  // Slurs / hate
-  "nigger", "nigga", "niglet", "negro", "coon",
-  "faggot", "fag", "fggt", "queer", "tranny", "homo", "dyke",
-  "retard", "tard", "spaz", "mongoloid",
-  "kike", "spic", "wetback", "chink", "gook", "raghead",
-  "nazi", "hitler", "kkk", "isis",
-  // Violence / drugs
-  "kill", "murder", "suicide", "kys", "shoot", "stab", "bomb", "terrorist",
-  "cocaine", "coke", "heroin", "meth", "crack", "weed", "ganja", "drug", "drugs",
-  "lsd", "mdma", "ecstasy",
-  // Hindi / Hinglish slang & abuses
-  "chutiya", "chutia", "chutya", "chut", "lund", "lavda", "lawda", "laund",
-  "bhosdi", "bhosda", "bhosdike", "bsdk", "bhsdk",
-  "madarchod", "mdrchd", "behenchod", "bhenchod", "bhanchod",
-  "gandu", "gaandu", "gand", "gaand",
-  "randi", "rndi", "raand", "saala", "kutiya", "kamina",
-  "harami", "haraami", "haramzada", "haramkhor",
-  "chinaal", "chinal", "tatti", "jhaant", "jhantu",
-  "loda", "lodu", "lawde", "launda", "laundi",
-  "kameena", "fattu", "phattu", "chakka",
+  "fuck","fuk","fuq","fck","fcuk","phuck","mofo","motherfucker",
+  "shit","shyt","bullshit","bitch","btch","biatch","biotch",
+  "cunt","kunt","twat","dick","dik","cock","kock","knob","prick","schlong",
+  "pussy","pusy","pussi","ass","asshole","arse","arsehole","bastard","basterd",
+  "slut","slutty","whore","thot","skank","sex","sexy","porn","porno","pron",
+  "nude","nudes","naked","xxx","nsfw","anal","boob","boobs","tit","tits","titty","boobies",
+  "vagina","penis","horny","kinky","cum","jizz","spunk","milf","dilf","bdsm","fetish",
+  "blowjob","handjob","rimjob","creampie","gangbang","rape","rapist","molest","pedo","pedophile",
+  "nigger","nigga","niglet","negro","coon","faggot","fag","fggt","queer","tranny","homo","dyke",
+  "retard","tard","spaz","mongoloid","kike","spic","wetback","chink","gook","raghead",
+  "nazi","hitler","kkk","isis","kill","murder","suicide","kys","shoot","stab","bomb","terrorist",
+  "cocaine","coke","heroin","meth","crack","weed","ganja","drug","drugs","lsd","mdma","ecstasy",
+  "chutiya","chutia","chutya","chut","lund","lavda","lawda","laund",
+  "bhosdi","bhosda","bhosdike","bsdk","bhsdk",
+  "madarchod","mdrchd","behenchod","bhenchod","bhanchod",
+  "gandu","gaandu","gand","gaand","randi","rndi","raand","saala","kutiya","kamina",
+  "harami","haraami","haramzada","haramkhor","chinaal","chinal","tatti","jhaant","jhantu",
+  "loda","lodu","lawde","launda","laundi","kameena","fattu","phattu","chakka",
 ];
 
 function normalizeLeet(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/0/g, "o")
-    .replace(/1/g, "i")
-    .replace(/3/g, "e")
-    .replace(/4/g, "a")
-    .replace(/5/g, "s")
-    .replace(/7/g, "t")
-    .replace(/8/g, "b")
-    .replace(/@/g, "a")
-    .replace(/\$/g, "s")
-    .replace(/[^a-z]/g, "");
+  return s.toLowerCase()
+    .replace(/0/g,"o").replace(/1/g,"i").replace(/3/g,"e").replace(/4/g,"a")
+    .replace(/5/g,"s").replace(/7/g,"t").replace(/8/g,"b")
+    .replace(/@/g,"a").replace(/\$/g,"s").replace(/[^a-z]/g,"");
 }
 
 function containsBlockedWord(id: string): boolean {
@@ -153,67 +183,37 @@ export function validateUserId(id: string, isOwner: boolean = false): string | n
     return "This User ID is not allowed. Please choose a clean, appropriate name.";
   }
   if (!isOwner) {
-    const myId = getMyId();
-    if (getClaimedIds().includes(id) && myId !== id) {
+    if (_claimedIds.has(id) && _myId !== id) {
       return "This User ID is already taken. Please choose a different one.";
     }
   }
   return null;
 }
 
-
 export function checkUserId(id: string): string | null {
-  const myId = getMyId();
-  return validateUserId(id, myId === id);
+  return validateUserId(id, _myId === id);
 }
 
-// --- Review Session ---
+// --- Review Session (sessionStorage only) ---
 const REVIEW_PASSWORD = "prepdrop123";
 
 export function reviewLogin(password: string): { ok: boolean; error?: string } {
   if (password !== REVIEW_PASSWORD) return { ok: false, error: "Incorrect password." };
-  // Check global lock — only one session allowed
-  const lock = localStorage.getItem(REVIEW_LOCK_KEY);
-  const mySession = sessionStorage.getItem(REVIEW_SESSION_KEY);
-  if (lock && lock !== mySession) {
-    // Verify the lock is still alive (heartbeat within last 30s)
-    try {
-      const parsed = JSON.parse(lock);
-      if (Date.now() - parsed.heartbeat < 30000) {
-        return { ok: false, error: "A review session is already active." };
-      }
-    } catch {
-      // stale, take over
-    }
-  }
   const sessionId = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
   sessionStorage.setItem(REVIEW_SESSION_KEY, sessionId);
-  localStorage.setItem(REVIEW_LOCK_KEY, JSON.stringify({ id: sessionId, heartbeat: Date.now() }));
   return { ok: true };
 }
 
 export function reviewIsLoggedIn(): boolean {
-  const sessionId = sessionStorage.getItem(REVIEW_SESSION_KEY);
-  if (!sessionId) return false;
-  const lock = localStorage.getItem(REVIEW_LOCK_KEY);
-  if (!lock) return false;
-  try {
-    const parsed = JSON.parse(lock);
-    return parsed.id === sessionId;
-  } catch {
-    return false;
-  }
+  return !!sessionStorage.getItem(REVIEW_SESSION_KEY);
 }
 
 export function reviewHeartbeat() {
-  const sessionId = sessionStorage.getItem(REVIEW_SESSION_KEY);
-  if (!sessionId) return;
-  localStorage.setItem(REVIEW_LOCK_KEY, JSON.stringify({ id: sessionId, heartbeat: Date.now() }));
+  // no-op (kept for API compatibility)
 }
 
 export function reviewLogout() {
   sessionStorage.removeItem(REVIEW_SESSION_KEY);
-  localStorage.removeItem(REVIEW_LOCK_KEY);
 }
 
 // --- URL validation ---
@@ -235,17 +235,12 @@ function getHostname(url: string): string | null {
 
 export function validateUrl(url: string): UrlValidation {
   if (!url) return { ok: false, error: "Please enter a valid URL." };
-  if (!/^https?:\/\//i.test(url)) {
-    return { ok: false, error: "Please enter a valid URL." };
-  }
+  if (!/^https?:\/\//i.test(url)) return { ok: false, error: "Please enter a valid URL." };
   const host = getHostname(url);
-  if (!host || !/\.[a-z]{2,}$/i.test(host)) {
-    return { ok: false, error: "Please enter a valid URL." };
-  }
+  if (!host || !/\.[a-z]{2,}$/i.test(host)) return { ok: false, error: "Please enter a valid URL." };
   return { ok: true };
 }
 
 export function isUrlUnverified(_url: string): boolean {
   return false;
 }
-

@@ -124,7 +124,7 @@ const Submit = () => {
         return;
       }
 
-      addResource({ name: derivedName, type, url: url.trim(), subject, userId });
+      await addResource({ name: derivedName, type, url: url.trim(), subject, userId });
       setSubmitted(true);
     } catch (err) {
       console.error("AI moderation failed:", err);
