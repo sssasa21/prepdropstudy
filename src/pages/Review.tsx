@@ -233,45 +233,63 @@ const Empty = ({ text }: { text: string }) => (
 const ReviewItem = ({
   resource,
   children,
+  showRating = false,
 }: {
   resource: Resource;
   children: React.ReactNode;
-}) => (
-  <Card className="p-4">
-    <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <h3 className="font-semibold">{resource.name}</h3>
-          <Badge variant="secondary" className="text-xs">
-            {resource.type === "app" ? "App" : "Telegram"}
-          </Badge>
-          <Badge variant="outline" className="text-xs">
-            {resource.subject}
-          </Badge>
-          {isUrlUnverified(resource.url) && (
-            <Badge variant="destructive" className="text-xs gap-1">
-              <AlertTriangle className="h-3 w-3" />
-              Unverified Link — Review Carefully
+  showRating?: boolean;
+}) => {
+  const summary = showRating ? getRatingSummary(resource.id) : null;
+  const lowRated = summary && summary.count > 0 && summary.average < 2;
+  return (
+    <Card className="p-4">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <h3 className="font-semibold">{resource.name}</h3>
+            <Badge variant="secondary" className="text-xs">
+              {resource.type === "app" ? "App" : "Telegram"}
             </Badge>
-          )}
+            <Badge variant="outline" className="text-xs">
+              {resource.subject}
+            </Badge>
+            {summary && summary.count > 0 && (
+              <Badge variant="outline" className="text-xs gap-1">
+                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                {summary.average.toFixed(1)} ({summary.count})
+              </Badge>
+            )}
+            {lowRated && (
+              <Badge variant="destructive" className="text-xs gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Low Rated
+              </Badge>
+            )}
+            {isUrlUnverified(resource.url) && (
+              <Badge variant="destructive" className="text-xs gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Unverified Link — Review Carefully
+              </Badge>
+            )}
+          </div>
+          <a
+            href={resource.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-primary hover:underline inline-flex items-center gap-1 break-all"
+          >
+            <ExternalLink className="h-3 w-3 shrink-0" />
+            <span className="truncate">{resource.url}</span>
+          </a>
+          <div className="text-xs text-muted-foreground mt-2">
+            By <span className="font-mono">{resource.userId}</span> ·{" "}
+            {new Date(resource.submittedAt).toLocaleString()}
+          </div>
         </div>
-        <a
-          href={resource.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-primary hover:underline inline-flex items-center gap-1 break-all"
-        >
-          <ExternalLink className="h-3 w-3 shrink-0" />
-          <span className="truncate">{resource.url}</span>
-        </a>
-        <div className="text-xs text-muted-foreground mt-2">
-          By <span className="font-mono">{resource.userId}</span> ·{" "}
-          {new Date(resource.submittedAt).toLocaleString()}
-        </div>
+        <div className="flex gap-2 shrink-0">{children}</div>
       </div>
-      <div className="flex gap-2 shrink-0">{children}</div>
-    </div>
-  </Card>
-);
+    </Card>
+  );
+};
 
 export default Review;
