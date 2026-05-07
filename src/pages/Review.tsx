@@ -184,7 +184,7 @@ const Dashboard = ({ onLogout }: { onLogout: () => void }) => {
           ) : (
             <div className="space-y-3">
               {published.map((r) => (
-                <ReviewItem key={r.id} resource={r}>
+                <ReviewItem key={r.id} resource={r} showRating>
                   <Button
                     size="sm"
                     variant="destructive"
