@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  getResources,
   reviewIsLoggedIn,
   reviewLogin,
   reviewLogout,
@@ -14,7 +13,11 @@ import {
   deleteResource,
   isUrlUnverified,
   type Resource,
+  type ResourceType,
+  type Subject,
+  type ResourceStatus,
 } from "@/lib/prepdrop";
+import { supabase } from "@/integrations/supabase/client";
 
 const Review = () => {
   const [loggedIn, setLoggedIn] = useState(() => reviewIsLoggedIn());
@@ -77,15 +80,47 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
 };
 
 const Dashboard = ({ onLogout }: { onLogout: () => void }) => {
-  const [resources, setResources] = useState<Resource[]>(() => getResources());
+  const [resources, setResources] = useState<Resource[]>([]);
 
   useEffect(() => {
-    const handler = () => setResources(getResources());
-    window.addEventListener("prepdrop:update", handler);
-    window.addEventListener("storage", handler);
+    const fetchAll = async () => {
+      const { data, error } = await supabase
+        .from("resources" as any)
+        .select("*")
+        .order("submitted_at", { ascending: false });
+      if (error) {
+        console.error("[review] fetch resources failed:", error);
+        return;
+      }
+      const mapped: Resource[] = (data as any[]).map((r) => ({
+        id: r.id,
+        name: r.name,
+        type: r.type as ResourceType,
+        url: r.url,
+        subject: r.subject as Subject,
+        userId: r.user_id,
+        status: r.status as ResourceStatus,
+        submittedAt: r.submitted_at,
+      }));
+      console.log("[review] fetched resources:", mapped.length);
+      setResources(mapped);
+    };
+    fetchAll();
+
+    const channel = supabase
+      .channel("review-resources-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "resources" },
+        (payload) => {
+          console.log("[review] realtime payload:", payload);
+          fetchAll();
+        }
+      )
+      .subscribe();
+
     return () => {
-      window.removeEventListener("prepdrop:update", handler);
-      window.removeEventListener("storage", handler);
+      supabase.removeChannel(channel);
     };
   }, []);
 

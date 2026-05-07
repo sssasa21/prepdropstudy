@@ -107,10 +107,21 @@ export async function addResource(r: Omit<Resource, "id" | "status" | "submitted
     })
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    console.error("[prepdrop] resources insert failed:", error);
+    throw error;
+  }
+  console.log("[prepdrop] resource inserted:", data);
 
-  await supabase.from("claimed_ids" as any).upsert({ user_id: r.userId });
-  await supabase.from("submission_times" as any).insert({ user_id: r.userId });
+  const { error: claimErr } = await supabase
+    .from("claimed_ids" as any)
+    .upsert({ user_id: r.userId });
+  if (claimErr) console.error("[prepdrop] claimed_ids upsert failed:", claimErr);
+
+  const { error: timeErr } = await supabase
+    .from("submission_times" as any)
+    .insert({ user_id: r.userId });
+  if (timeErr) console.error("[prepdrop] submission_times insert failed:", timeErr);
 
   _myId = r.userId;
   await Promise.all([refreshResources(), refreshClaimedIds()]);
