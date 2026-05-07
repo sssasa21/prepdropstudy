@@ -7,6 +7,9 @@ import Index from "./pages/Index.tsx";
 import Submit from "./pages/Submit.tsx";
 import Review from "./pages/Review.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import { initPrepDrop } from "@/lib/prepdrop";
+
+initPrepDrop();
 
 const queryClient = new QueryClient();
 
