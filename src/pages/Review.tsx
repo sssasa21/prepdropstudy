@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LogOut, Trash2, Check, X, ExternalLink, Lock, AlertTriangle } from "lucide-react";
+import { LogOut, Trash2, Check, X, ExternalLink, Lock, AlertTriangle, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
