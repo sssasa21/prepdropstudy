@@ -337,6 +337,9 @@ const ReviewItem = ({
               </Badge>
             )}
           </div>
+          {editing && error && (
+            <p className="text-xs text-destructive mb-2">{error}</p>
+          )}
           <a
             href={resource.url}
             target="_blank"
