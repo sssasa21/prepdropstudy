@@ -241,12 +241,77 @@ const ReviewItem = ({
 }) => {
   const summary = showRating ? getRatingSummary(resource.id) : null;
   const lowRated = summary && summary.count > 0 && summary.average < 2;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(resource.name);
+  const [name, setName] = useState(resource.name);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setName(resource.name);
+    if (!editing) setDraft(resource.name);
+  }, [resource.name]);
+
+  const handleSave = async () => {
+    const trimmed = draft.trim();
+    if (!trimmed) {
+      setError("Name cannot be empty.");
+      return;
+    }
+    setSaving(true);
+    const { error: err } = await supabase
+      .from("resources" as any)
+      .update({ name: trimmed })
+      .eq("id", resource.id);
+    setSaving(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setName(trimmed);
+    setEditing(false);
+    setError(null);
+  };
+
+  const handleCancel = () => {
+    setDraft(name);
+    setError(null);
+    setEditing(false);
+  };
+
   return (
     <Card className="p-4">
       <div className="flex flex-col sm:flex-row sm:items-start gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <h3 className="font-semibold">{resource.name}</h3>
+            {editing ? (
+              <div className="flex items-center gap-2 flex-wrap w-full">
+                <Input
+                  value={draft}
+                  onChange={(e) => { setDraft(e.target.value); setError(null); }}
+                  className="h-8 max-w-xs"
+                  autoFocus
+                />
+                <Button size="sm" onClick={handleSave} disabled={saving}>
+                  <Check className="h-4 w-4 mr-1" /> Save
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleCancel} disabled={saving}>
+                  <X className="h-4 w-4 mr-1" /> Cancel
+                </Button>
+              </div>
+            ) : (
+              <>
+                <h3 className="font-semibold">{name}</h3>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2"
+                  onClick={() => { setDraft(name); setEditing(true); }}
+                >
+                  <Pencil className="h-3.5 w-3.5 mr-1" /> Edit Name
+                </Button>
+              </>
+            )}
             <Badge variant="secondary" className="text-xs">
               {resource.type === "app" ? "App" : "Telegram"}
             </Badge>
