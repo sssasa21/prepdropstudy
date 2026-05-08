@@ -22,7 +22,7 @@ import {
   type ResourceType,
   type Subject,
 } from "@/lib/prepdrop";
-import { runFullModeration } from "@/lib/moderation";
+import { aiCheckUrl, aiCheckUsername } from "@/lib/moderation";
 import { toast } from "@/hooks/use-toast";
 
 function extractNameFromUrl(url: string): string {
@@ -30,9 +30,9 @@ function extractNameFromUrl(url: string): string {
     const u = new URL(url);
     let host = u.hostname.toLowerCase().replace(/^www\./, "");
     const parts = host.split(".");
-    if (parts.length > 1) parts.pop(); // remove TLD
+    if (parts.length > 1) parts.pop();
     if (parts.length > 1 && ["co", "com", "ac", "gov", "org"].includes(parts[parts.length - 1])) {
-      parts.pop(); // remove second-level TLD like .co.uk
+      parts.pop();
     }
     return parts.join(" ").replace(/[-.]/g, " ").trim();
   } catch {
@@ -48,6 +48,8 @@ const Submit = () => {
   const [subject, setSubject] = useState<Subject>("General");
   const [userId, setUserId] = useState("");
   const [userIdError, setUserIdError] = useState<string | null>(null);
+  const [userIdChecking, setUserIdChecking] = useState(false);
+  const [urlChecking, setUrlChecking] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -61,9 +63,21 @@ const Submit = () => {
     else setUserIdError(null);
   };
 
-  const handleUserIdBlur = () => {
+  const handleUserIdBlur = async () => {
     if (!userId) return;
-    setUserIdError(checkUserId(userId));
+    const localErr = checkUserId(userId);
+    if (localErr) {
+      setUserIdError(localErr);
+      return;
+    }
+    setUserIdChecking(true);
+    const result = await aiCheckUsername(userId);
+    setUserIdChecking(false);
+    if (!result.allowed) {
+      setUserIdError("This User ID is not allowed. Please choose a clean appropriate name.");
+    } else {
+      setUserIdError(null);
+    }
   };
 
   const handleUrlChange = (v: string) => {
@@ -79,19 +93,30 @@ const Submit = () => {
       setUrlWarning(null);
     } else {
       setUrlError(null);
-      setUrlWarning(result.warning || null);
+      setUrlWarning(null);
     }
   };
 
-  const handleUrlBlur = () => {
+  const handleUrlBlur = async () => {
     if (!url) return;
     const result = validateUrl(url.trim());
     if (!result.ok) {
       setUrlError(result.error || "Please enter a valid URL.");
       setUrlWarning(null);
+      return;
+    }
+    setUrlChecking(true);
+    const ai = await aiCheckUrl(url.trim());
+    setUrlChecking(false);
+    if (!ai.allowed) {
+      setUrlError("This URL is not allowed on PrepDrop.");
+      setUrlWarning(null);
+    } else if (!ai.trusted) {
+      setUrlError(null);
+      setUrlWarning("This link will go through extra review before publishing.");
     } else {
       setUrlError(null);
-      setUrlWarning(result.warning || null);
+      setUrlWarning(null);
     }
   };
 
@@ -116,10 +141,18 @@ const Submit = () => {
 
     setChecking(true);
     try {
-      const report = await runFullModeration(derivedName, url.trim());
+      const [usernameAi, urlAi] = await Promise.all([
+        aiCheckUsername(userId),
+        aiCheckUrl(url.trim()),
+      ]);
 
-      if (!report.url.safe) {
-        setUrlError(`URL rejected: ${report.url.reason}`);
+      if (!usernameAi.allowed) {
+        setUserIdError("This User ID is not allowed. Please choose a clean appropriate name.");
+        setChecking(false);
+        return;
+      }
+      if (!urlAi.allowed) {
+        setUrlError("This URL is not allowed on PrepDrop.");
         setChecking(false);
         return;
       }
@@ -127,17 +160,16 @@ const Submit = () => {
       await addResource({ name: derivedName, type, url: url.trim(), subject, userId });
       setSubmitted(true);
     } catch (err) {
-      console.error("AI moderation failed:", err);
+      console.error("Submission failed:", err);
       toast({
-        title: "Moderation service unavailable",
-        description: "We couldn't verify your submission right now. Please try again in a moment.",
+        title: "Submission failed",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
       setChecking(false);
     }
   };
-
 
   if (submitted) {
     return (
@@ -159,7 +191,6 @@ const Submit = () => {
               className="bg-gradient-primary border-0"
               onClick={() => {
                 setSubmitted(false);
-                
                 setUrl("");
                 setSubject("General");
               }}
@@ -190,7 +221,6 @@ const Submit = () => {
 
         <Card className="p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
-
             <div className="space-y-2">
               <Label>Resource Type</Label>
               <Select value={type} onValueChange={(v) => setType(v as ResourceType)}>
@@ -217,12 +247,12 @@ const Submit = () => {
                 className={urlError ? "border-destructive" : ""}
                 required
               />
+              {urlChecking && <p className="text-xs text-muted-foreground">Checking...</p>}
               {urlError && <p className="text-xs text-destructive">{urlError}</p>}
               {!urlError && urlWarning && (
                 <p className="text-xs text-primary-glow">⚠️ {urlWarning}</p>
               )}
             </div>
-
 
             <div className="space-y-2">
               <Label>Subject</Label>
@@ -252,6 +282,7 @@ const Submit = () => {
                 className={userIdError ? "border-destructive" : ""}
                 required
               />
+              {userIdChecking && <p className="text-xs text-muted-foreground">Checking...</p>}
               {userIdError && <p className="text-xs text-destructive">{userIdError}</p>}
               <p className="text-xs text-muted-foreground">
                 Max 7 characters. Letters, numbers and _ only. No login needed — this is your public identity.
@@ -268,7 +299,10 @@ const Submit = () => {
               className="w-full bg-gradient-primary border-0 shadow-glow"
               disabled={
                 checking ||
+                userIdChecking ||
+                urlChecking ||
                 !!userIdError ||
+                !!urlError ||
                 !!validateUserId(userId) ||
                 !url.trim() ||
                 !validateUrl(url.trim()).ok
