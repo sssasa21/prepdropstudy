@@ -99,11 +99,6 @@ const Submit = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
-    const idErr = checkUserId(userId);
-    if (idErr) {
-      setUserIdError(idErr);
-      return;
-    }
     const derivedName = extractNameFromUrl(url.trim());
     if (!derivedName || !url.trim()) {
       setFormError("Please fill out all fields.");
@@ -117,16 +112,7 @@ const Submit = () => {
 
     setChecking(true);
     try {
-      const [usernameAi, urlAi] = await Promise.all([
-        aiCheckUsername(userId),
-        aiCheckUrl(url.trim()),
-      ]);
-
-      if (!usernameAi.allowed) {
-        setUserIdError("This User ID is not allowed. Please choose a clean appropriate name.");
-        setChecking(false);
-        return;
-      }
+      const urlAi = await aiCheckUrl(url.trim());
       if (!urlAi.allowed) {
         setUrlError("This URL is not allowed on PrepDrop.");
         setChecking(false);
