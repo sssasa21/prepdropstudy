@@ -1,6 +1,7 @@
 import { Droplet, Plus } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { FeedbackButton } from "@/components/FeedbackButton";
 
 export const PrepDropHeader = () => {
   const location = useLocation();
