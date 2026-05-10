@@ -82,6 +82,7 @@ const Submit = () => {
 
   const handleUrlChange = (v: string) => {
     setUrl(v);
+    setType(/t\.me/i.test(v) ? "telegram" : "app");
     if (!v) {
       setUrlError(null);
       setUrlWarning(null);
