@@ -23,6 +23,7 @@ export const PrepDropHeader = () => {
           </Button>
         )}
       </div>
+      <FeedbackButton />
     </header>
   );
 };
