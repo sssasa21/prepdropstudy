@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { LogOut, Trash2, Check, X, ExternalLink, Lock, AlertTriangle, Pencil } from "lucide-react";
+import { LogOut, Trash2, Check, X, ExternalLink, Lock, AlertTriangle, Pencil, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   reviewIsLoggedIn,
   reviewLogin,
@@ -20,6 +21,15 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { getRatingSummary, subscribeRatings, initRatings } from "@/lib/ratings";
 import { Star } from "lucide-react";
+
+interface FeedbackEntry {
+  id: string;
+  type: string;
+  message: string;
+  submitted_at: string;
+}
+
+const FEEDBACK_SEEN_KEY = "prepdrop_feedback_seen_at";
 
 const Review = () => {
   const [loggedIn, setLoggedIn] = useState(() => reviewIsLoggedIn());
