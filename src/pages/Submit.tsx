@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,14 +15,13 @@ import {
 } from "@/components/ui/select";
 import {
   addResource,
-  checkUserId,
-  validateUserId,
+  getOrCreateMyId,
   validateUrl,
   SUBJECTS,
   type ResourceType,
   type Subject,
 } from "@/lib/prepdrop";
-import { aiCheckUrl, aiCheckUsername } from "@/lib/moderation";
+import { aiCheckUrl } from "@/lib/moderation";
 import { toast } from "@/hooks/use-toast";
 
 function extractNameFromUrl(url: string): string {
@@ -47,38 +46,14 @@ const Submit = () => {
   const [urlWarning, setUrlWarning] = useState<string | null>(null);
   const [subject, setSubject] = useState<Subject>("General");
   const [userId, setUserId] = useState("");
-  const [userIdError, setUserIdError] = useState<string | null>(null);
-  const [userIdChecking, setUserIdChecking] = useState(false);
   const [urlChecking, setUrlChecking] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
 
-  const handleUserIdChange = (v: string) => {
-    setUserId(v);
-    if (v.length > 7) setUserIdError("User ID must be 7 characters or less.");
-    else if (v && !/^[A-Za-z0-9_]*$/.test(v))
-      setUserIdError("Only letters, numbers, and underscores allowed.");
-    else if (v) setUserIdError(validateUserId(v, true));
-    else setUserIdError(null);
-  };
-
-  const handleUserIdBlur = async () => {
-    if (!userId) return;
-    const localErr = checkUserId(userId);
-    if (localErr) {
-      setUserIdError(localErr);
-      return;
-    }
-    setUserIdChecking(true);
-    const result = await aiCheckUsername(userId);
-    setUserIdChecking(false);
-    if (!result.allowed) {
-      setUserIdError("This User ID is not allowed. Please choose a clean appropriate name.");
-    } else {
-      setUserIdError(null);
-    }
-  };
+  useEffect(() => {
+    setUserId(getOrCreateMyId());
+  }, []);
 
   const handleUrlChange = (v: string) => {
     setUrl(v);
@@ -124,11 +99,6 @@ const Submit = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
-    const idErr = checkUserId(userId);
-    if (idErr) {
-      setUserIdError(idErr);
-      return;
-    }
     const derivedName = extractNameFromUrl(url.trim());
     if (!derivedName || !url.trim()) {
       setFormError("Please fill out all fields.");
@@ -142,16 +112,7 @@ const Submit = () => {
 
     setChecking(true);
     try {
-      const [usernameAi, urlAi] = await Promise.all([
-        aiCheckUsername(userId),
-        aiCheckUrl(url.trim()),
-      ]);
-
-      if (!usernameAi.allowed) {
-        setUserIdError("This User ID is not allowed. Please choose a clean appropriate name.");
-        setChecking(false);
-        return;
-      }
+      const urlAi = await aiCheckUrl(url.trim());
       if (!urlAi.allowed) {
         setUrlError("This URL is not allowed on PrepDrop.");
         setChecking(false);
@@ -276,17 +237,11 @@ const Submit = () => {
               <Input
                 id="userId"
                 value={userId}
-                onChange={(e) => handleUserIdChange(e.target.value)}
-                onBlur={handleUserIdBlur}
-                maxLength={20}
-                placeholder="max 7 chars"
-                className={userIdError ? "border-destructive" : ""}
-                required
+                readOnly
+                className="bg-muted/40 cursor-not-allowed"
               />
-              {userIdChecking && <p className="text-xs text-muted-foreground">Checking...</p>}
-              {userIdError && <p className="text-xs text-destructive">{userIdError}</p>}
               <p className="text-xs text-muted-foreground">
-                Max 7 characters. Letters, numbers and _ only. No login needed — this is your public identity.
+                Auto-generated. This is your public identity — no login required.
               </p>
             </div>
 
@@ -300,11 +255,8 @@ const Submit = () => {
               className="w-full bg-gradient-primary border-0 shadow-glow"
               disabled={
                 checking ||
-                userIdChecking ||
                 urlChecking ||
-                !!userIdError ||
                 !!urlError ||
-                !!validateUserId(userId) ||
                 !url.trim() ||
                 !validateUrl(url.trim()).ok
               }
