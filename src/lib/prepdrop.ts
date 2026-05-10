@@ -16,6 +16,24 @@ export interface Resource {
 }
 
 const REVIEW_SESSION_KEY = "prepdrop_review_session";
+const MY_ID_KEY = "prepdrop_my_id";
+
+function generateUserId(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let s = "";
+  for (let i = 0; i < 4; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return `usr_${s}`;
+}
+
+export function getOrCreateMyId(): string {
+  let id = localStorage.getItem(MY_ID_KEY);
+  if (!id) {
+    id = generateUserId();
+    localStorage.setItem(MY_ID_KEY, id);
+  }
+  _myId = id;
+  return id;
+}
 
 export const SUBJECTS: Subject[] = ["Physics", "Chemistry", "Maths", "General"];
 
