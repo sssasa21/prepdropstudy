@@ -237,17 +237,11 @@ const Submit = () => {
               <Input
                 id="userId"
                 value={userId}
-                onChange={(e) => handleUserIdChange(e.target.value)}
-                onBlur={handleUserIdBlur}
-                maxLength={20}
-                placeholder="max 7 chars"
-                className={userIdError ? "border-destructive" : ""}
-                required
+                readOnly
+                className="bg-muted/40 cursor-not-allowed"
               />
-              {userIdChecking && <p className="text-xs text-muted-foreground">Checking...</p>}
-              {userIdError && <p className="text-xs text-destructive">{userIdError}</p>}
               <p className="text-xs text-muted-foreground">
-                Max 7 characters. Letters, numbers and _ only. No login needed — this is your public identity.
+                Auto-generated. This is your public identity — no login required.
               </p>
             </div>
 
@@ -261,11 +255,8 @@ const Submit = () => {
               className="w-full bg-gradient-primary border-0 shadow-glow"
               disabled={
                 checking ||
-                userIdChecking ||
                 urlChecking ||
-                !!userIdError ||
                 !!urlError ||
-                !!validateUserId(userId) ||
                 !url.trim() ||
                 !validateUrl(url.trim()).ok
               }
