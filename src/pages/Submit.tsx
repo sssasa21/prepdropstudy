@@ -46,38 +46,14 @@ const Submit = () => {
   const [urlWarning, setUrlWarning] = useState<string | null>(null);
   const [subject, setSubject] = useState<Subject>("General");
   const [userId, setUserId] = useState("");
-  const [userIdError, setUserIdError] = useState<string | null>(null);
-  const [userIdChecking, setUserIdChecking] = useState(false);
   const [urlChecking, setUrlChecking] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
 
-  const handleUserIdChange = (v: string) => {
-    setUserId(v);
-    if (v.length > 7) setUserIdError("User ID must be 7 characters or less.");
-    else if (v && !/^[A-Za-z0-9_]*$/.test(v))
-      setUserIdError("Only letters, numbers, and underscores allowed.");
-    else if (v) setUserIdError(validateUserId(v, true));
-    else setUserIdError(null);
-  };
-
-  const handleUserIdBlur = async () => {
-    if (!userId) return;
-    const localErr = checkUserId(userId);
-    if (localErr) {
-      setUserIdError(localErr);
-      return;
-    }
-    setUserIdChecking(true);
-    const result = await aiCheckUsername(userId);
-    setUserIdChecking(false);
-    if (!result.allowed) {
-      setUserIdError("This User ID is not allowed. Please choose a clean appropriate name.");
-    } else {
-      setUserIdError(null);
-    }
-  };
+  useEffect(() => {
+    setUserId(getOrCreateMyId());
+  }, []);
 
   const handleUrlChange = (v: string) => {
     setUrl(v);
