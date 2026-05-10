@@ -285,27 +285,11 @@ const Dashboard = ({ onLogout }: { onLogout: () => void }) => {
     </div>
   );
 };
+const Stat = ({ label, value }: { label: string; value: number }) => (
   <Card className="p-4 text-center">
     <div className="text-2xl font-bold">{value}</div>
     <div className="text-xs text-muted-foreground uppercase tracking-wide mt-1">{label}</div>
   </Card>
-);
-
-const Section = ({
-  title,
-  count,
-  children,
-}: {
-  title: string;
-  count: number;
-  children: React.ReactNode;
-}) => (
-  <section className="mb-10">
-    <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-      {title} ({count})
-    </h2>
-    {children}
-  </section>
 );
 
 const Empty = ({ text }: { text: string }) => (
