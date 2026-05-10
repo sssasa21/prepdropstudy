@@ -29,6 +29,27 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          id: string
+          message: string
+          submitted_at: string
+          type: string
+        }
+        Insert: {
+          id?: string
+          message: string
+          submitted_at?: string
+          type: string
+        }
+        Update: {
+          id?: string
+          message?: string
+          submitted_at?: string
+          type?: string
+        }
+        Relationships: []
+      }
       ratings: {
         Row: {
           created_at: string
