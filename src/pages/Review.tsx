@@ -93,6 +93,11 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
 
 const Dashboard = ({ onLogout }: { onLogout: () => void }) => {
   const [resources, setResources] = useState<Resource[]>([]);
+  const [feedback, setFeedback] = useState<FeedbackEntry[]>([]);
+  const [tab, setTab] = useState<"pending" | "published" | "feedback">("pending");
+  const [seenAt, setSeenAt] = useState<number>(() =>
+    Number(localStorage.getItem(FEEDBACK_SEEN_KEY) || 0)
+  );
   const [, setRatingTick] = useState(0);
 
   useEffect(() => {
@@ -118,20 +123,35 @@ const Dashboard = ({ onLogout }: { onLogout: () => void }) => {
         status: r.status as ResourceStatus,
         submittedAt: r.submitted_at,
       }));
-      console.log("[review] fetched resources:", mapped.length);
       setResources(mapped);
     };
+
+    const fetchFeedback = async () => {
+      const { data, error } = await supabase
+        .from("feedback" as any)
+        .select("*")
+        .order("submitted_at", { ascending: false });
+      if (error) {
+        console.error("[review] fetch feedback failed:", error);
+        return;
+      }
+      setFeedback((data as any[]) as FeedbackEntry[]);
+    };
+
     fetchAll();
+    fetchFeedback();
 
     const channel = supabase
-      .channel("review-resources-realtime")
+      .channel("review-realtime")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "resources" },
-        (payload) => {
-          console.log("[review] realtime payload:", payload);
-          fetchAll();
-        }
+        () => fetchAll()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "feedback" },
+        () => fetchFeedback()
       )
       .subscribe();
 
@@ -143,6 +163,22 @@ const Dashboard = ({ onLogout }: { onLogout: () => void }) => {
 
   const pending = resources.filter((r) => r.status === "pending");
   const published = resources.filter((r) => r.status === "published");
+  const unreadFeedback = feedback.filter(
+    (f) => new Date(f.submitted_at).getTime() > seenAt
+  ).length;
+
+  const handleTabChange = (v: string) => {
+    setTab(v as any);
+    if (v === "feedback") {
+      const now = Date.now();
+      localStorage.setItem(FEEDBACK_SEEN_KEY, String(now));
+      setSeenAt(now);
+    }
+  };
+
+  const handleDeleteFeedback = async (id: string) => {
+    await supabase.from("feedback" as any).delete().eq("id", id);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -162,57 +198,93 @@ const Dashboard = ({ onLogout }: { onLogout: () => void }) => {
           <Stat label="Total" value={resources.length} />
         </div>
 
-        <Section title="Pending" count={pending.length}>
-          {pending.length === 0 ? (
-            <Empty text="No pending submissions." />
-          ) : (
-            <div className="space-y-3">
-              {pending.map((r) => (
-                <ReviewItem key={r.id} resource={r}>
-                  <Button
-                    size="sm"
-                    onClick={() => updateResourceStatus(r.id, "published")}
-                  >
-                    <Check className="h-4 w-4 mr-1" /> Publish
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => deleteResource(r.id)}
-                  >
-                    <X className="h-4 w-4 mr-1" /> Reject
-                  </Button>
-                </ReviewItem>
-              ))}
-            </div>
-          )}
-        </Section>
+        <Tabs value={tab} onValueChange={handleTabChange}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="pending">Pending ({pending.length})</TabsTrigger>
+            <TabsTrigger value="published">Published ({published.length})</TabsTrigger>
+            <TabsTrigger value="feedback" className="gap-2">
+              Feedback
+              {unreadFeedback > 0 && (
+                <Badge variant="destructive" className="h-5 px-1.5">
+                  {unreadFeedback}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-        <Section title="Published" count={published.length}>
-          {published.length === 0 ? (
-            <Empty text="No published resources yet." />
-          ) : (
-            <div className="space-y-3">
-              {published.map((r) => (
-                <ReviewItem key={r.id} resource={r} showRating>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => deleteResource(r.id)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" /> Delete
-                  </Button>
-                </ReviewItem>
-              ))}
-            </div>
-          )}
-        </Section>
+          <TabsContent value="pending">
+            {pending.length === 0 ? (
+              <Empty text="No pending submissions." />
+            ) : (
+              <div className="space-y-3">
+                {pending.map((r) => (
+                  <ReviewItem key={r.id} resource={r}>
+                    <Button size="sm" onClick={() => updateResourceStatus(r.id, "published")}>
+                      <Check className="h-4 w-4 mr-1" /> Publish
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => deleteResource(r.id)}>
+                      <X className="h-4 w-4 mr-1" /> Reject
+                    </Button>
+                  </ReviewItem>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="published">
+            {published.length === 0 ? (
+              <Empty text="No published resources yet." />
+            ) : (
+              <div className="space-y-3">
+                {published.map((r) => (
+                  <ReviewItem key={r.id} resource={r} showRating>
+                    <Button size="sm" variant="destructive" onClick={() => deleteResource(r.id)}>
+                      <Trash2 className="h-4 w-4 mr-1" /> Delete
+                    </Button>
+                  </ReviewItem>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="feedback">
+            {feedback.length === 0 ? (
+              <Empty text="No feedback yet." />
+            ) : (
+              <div className="space-y-3">
+                {feedback.map((f) => (
+                  <Card key={f.id} className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-md bg-secondary">
+                        <MessageSquare className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <Badge variant="secondary" className="text-xs">{f.type}</Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(f.submitted_at).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap break-words">{f.message}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteFeedback(f.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
 };
-
-const Stat = ({ label, value }: { label: string; value: number }) => (
   <Card className="p-4 text-center">
     <div className="text-2xl font-bold">{value}</div>
     <div className="text-xs text-muted-foreground uppercase tracking-wide mt-1">{label}</div>
