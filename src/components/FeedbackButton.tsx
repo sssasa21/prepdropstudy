@@ -56,7 +56,7 @@ export const FeedbackButton = () => {
       <DialogTrigger asChild>
         <Button
           size="sm"
-          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 shadow-lg bg-gradient-primary border-0 rounded-full"
+          className="fixed bottom-4 left-4 md:left-1/2 md:-translate-x-1/2 z-50 shadow-lg bg-gradient-primary border-0 rounded-full"
         >
           <MessageSquare className="h-4 w-4 mr-1.5" /> Give Feedback
         </Button>
