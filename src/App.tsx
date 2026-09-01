@@ -9,22 +9,18 @@ import Review from "./pages/Review.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { initPrepDrop } from "@/lib/prepdrop";
 import { initRatings } from "@/lib/ratings";
-import { getMissingEnvVars } from "@/lib/env";
-import { ConfigError } from "@/components/ConfigError";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 
-const missingEnv = getMissingEnvVars();
-
-if (missingEnv.length === 0) {
+try {
   initPrepDrop();
   initRatings();
+} catch (e) {
+  console.error("PrepDrop init failed:", e);
 }
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  if (missingEnv.length > 0) return <ConfigError missing={missingEnv} />;
-
   return (
     <AppErrorBoundary>
       <QueryClientProvider client={queryClient}>
